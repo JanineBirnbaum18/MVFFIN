@@ -21,6 +21,6 @@ getFunctions\_outgas.m: support functions with constitutive relationships and so
 
 getFunctions\_permeable.m: support functions with constitutive relationships and solvers for permeable gas flow
 
-getFunctions\_thermal.m: support fuctions with constitutive relationships and solvers for thermal diffusion
+getFunctions\_thermal.m: support functions with constitutive relationships and solvers for thermal diffusion
 
 get_Functions\_v2.m: support functions and constitutive relationships for bubble-scale model from Coumans et al. (2020)
