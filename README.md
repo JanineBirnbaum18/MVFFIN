@@ -4,6 +4,8 @@ Simulate bubble growth and multi-phase flow
 ## Technologies
 Matlab software using the bubble-scale vesiculation model of Coumans et al. (2020) https://doi.org/10.1016/j.jvolgeores.2020.107002
 
+Requires: Matlab, Optimization Toolbox
+
 ## Contains
 Coumans\_coupled.m: main function definition for suspension-scale dynamics and passing arguments to bubble-scale model
 
