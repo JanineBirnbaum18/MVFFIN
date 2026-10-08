@@ -3,13 +3,16 @@ function [DarcyFun,PermFun,WaterViscModel,OutgasFun] = getFunctions_outgas(Geome
 switch Geometry
     case 'Radial'
         DarcyFun = @(m0_fun,M1,P,P0,radius,z_p,z_u,K,mu,rho,Nb,R,T,dt,...
-            min_density)Spherical_perm(m0_fun,M1,P,P0,radius,z_p,z_u,K,mu,rho,...
-            Nb,R,T,dt,min_density);
+            min_density)Spherical_perm(m0_fun,M1,P,P0,radius,z_p,z_u,K,mu, ...
+            rho,Nb,R,T,dt,min_density);
         switch OutgasModel
             case 'Diffusive'
-                OutgasFun = @(H2O1, H2O2, K, z_T, dt1, dt2, BC, timescheme)Spherical_outgas(H2O1, H2O2, K, z_T, dt1, dt2, BC, timescheme);
+                OutgasFun = @(H2O1, H2O2, K, z_T, dt1, dt2, BC, ...
+                    timescheme)Spherical_outgas(H2O1, H2O2, K, z_T, dt1, ...
+                    dt2, BC, timescheme);
             case 'None'
-                OutgasFun = @(H2O1, H2O2, K, z_T, dt1, dt2, BC, timescheme)(H2O1);
+                OutgasFun = @(H2O1, H2O2, K, z_T, dt1, dt2, BC, ...
+                    timescheme)(H2O1);
         end
     case 'Cylindrical'
         DarcyFun = @(m0_fun,M1,P,P0,radius,z_p,z_u,K,mu,rho,Nb,R,T,dt,...
@@ -17,9 +20,12 @@ switch Geometry
             rho,Nb,R,T,dt,min_density);
         switch OutgasModel
             case 'Diffusive'
-                OutgasFun = @(H2O1, H2O2, K, z_T, dt1, dt2, BC, timescheme)Cylindrical_outgas(H2O1, H2O2, K, z_T, dt1, dt2, BC, timescheme);
+                OutgasFun = @(H2O1, H2O2, K, z_T, dt1, dt2, BC, ...
+                    timescheme)Cylindrical_outgas(H2O1, H2O2, K, z_T, dt1, ...
+                    dt2, BC, timescheme);
             case 'None'
-                OutgasFun = @(H2O1, H2O2, K, z_T, dt1, dt2, BC, timescheme)(H2O1);
+                OutgasFun = @(H2O1, H2O2, K, z_T, dt1, dt2, BC, ...
+                    timescheme)(H2O1);
         end
 end
 
@@ -36,8 +42,8 @@ end
 WaterViscModel = @(rho,T)IAPSViscModel(rho,T);
 
 % permeable outgassing
-function [m_loss] = Cylindrical_perm(m0_fun,M1,P,P0,radius,z_p,z_u,K,mu,rho,Nb,R,T,...
-    dt,min_density)
+function [m_loss] = Cylindrical_perm(m0_fun,M1,P,P0,radius,z_p,z_u,K,mu,rho, ...
+    Nb,R,T,dt,min_density)
 [h1,h2,A,B,C,D,E,F] = FDcoeff([z_p,z_u(end)]);
 
 ddz = diag(-D(2:end-1),-1) + diag(-E(1:end-1)) + diag(C(1:end-2),1);
