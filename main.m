@@ -1,11 +1,219 @@
 function [u, phi, rho, drhodt, melt_visc, eta, P, H2O, xH2O, R, Nb, T, ...
          Cc, pb_loss, m_loss, zz_p, zz_u, zz_t, t,...
-         hoop_stress, along_strain_rate, transverse_strain_rate, bubble_strain_rate] = main(Composition, H2Ot_0, Geometry, radius, z_int0, ...
-    BC, BC_type, BC_T, flux, SolModel, DiffModel, ViscModel, EOSModel, rhoModel,  PermModel, OutgasModel, ...
-    SurfTens, melt_rho,...
-    rock_rho, env_rho, alpha, melt_beta, etar, Nb_0, R_0, phi_0,...
-    P_0, P_f, dPdt, T_0, T_f, PTtModel, Buoyancy, dTdt, t_quench, tf,...
-    solve_T, t_min, t_max, nt, n_magma)
+         hoop_stress, along_strain_rate, transverse_strain_rate,...
+         bubble_strain_rate] = main(Composition, H2Ot_0, Geometry, radius, ...
+         z_int0, BC, BC_type, BC_T, flux, SolModel, DiffModel, ViscModel, ...
+         EOSModel, CpModel, CpmeltModel, kModel, kmeltModel,rhoModel, ...
+         PermModel, OutgasModel, Pp, SurfTens, melt_rho, rock_rho, alpha, ...
+         melt_beta, etar, Nb_0, R_0,P_0, P_f, dPdt, T_0, T_f, dTdt, ...
+         t_quench, PTtModel, Buoyancy, tf, solve_T, t_min, t_max, nt, ...
+         n_magma,options)
+% Solve coupled bubble-growth and suspension flow in vesiculating fluids
+% 
+% -------------------------------------------------------------------------
+% Janine Birnbaum (2026)
+% 
+% Adapted from:
+% J. P. Coumans, E. W. Llewellin, F. B. Wadsworth, M. C. S. Humphreys, 
+% S. A. Mathias, B. M. Yelverton, J. E. Gardner (2020) An experimentally
+% validated numerical model for bubble growth in magma. Journal of
+% Volcanology and Geothermal Research.
+%
+% -------------------------------------------------------------------------
+% Inputs: 
+% Composition: 1x12 numeric, melt composition in wt.% oxides in order 
+%   [SiO2 TiO2 Al2O3 FeO(T) MnO MgO CaO Na2O K2O P2O5 H2O F2O-1].
+% H2Ot_0: 1x1 numeric, initial total water content in wt.%
+% Geometry: String, 'Radial' or 'Cylindrical' to switch between symmetry.
+% radius: 1x1 numeric, initial magma parcel radius in m.
+% z_int0: 1x1 numeric, initial magma parcel height in m, only used in
+%   'Cylindrical' geometry.
+% BC: String, 'No normal' or 'No stress' to specify no normal flow or zero
+%   traction condition at bottom boundary of suspension, only used in
+%   'Cylindrical' geometry. See getFunctions_dynamic_dimensionless.m.
+% BC_type: String, 'Dirichlet' or 'Forced' to specify thermal boundary
+%   condition at exterior/top boundary. 'Dirichlet' will set the
+%   temperature to the applied temperature path (specified in BC_T) at 
+%   each time, 'Forced' drives toward the applied temperature via
+%   conduction and forced convection. See getFunctions_thermal.m.
+% BC_T: 1x1 (if BC_type = 'Dirichlet') or 1x2 (if BC_type = 'Forced')
+%   numeric, first argument is exterior temperature (will be over-written
+%   with time by PTtModel if BC_type = 'Dirichlet') and second argument is 
+%   the convective heat transfer coefficient for environmental fluid 
+%   (e.g. air, water). See getFunctions_thermal.m
+% flux: 1x1 numeric, applied exterior heat flux from conduit margins, only
+%   used in 'Cylindrical' geometry. Positive indicated heat flow into the
+%   magma. See getFunctions_thermal.m.
+% SolModel: String, case for solubility model, see getFunctions_v2.m.
+%   Default options include 'Ryan 2015', 'Liu 2005', 'Weaver',
+%   'Krafla_constant', 'Schunke'.
+% DiffModel: String, case for water diffusion model, see getFunctions_v2.m.
+%   Default options include 'Zhang 2010 Metaluminous simple', 'Zhang 2010
+%   Metaluminous', 'Zhang 2010 Peralkaline','Constant'.
+% ViscModel: String, case for viscosity model, see getFunctions_v2.m.
+%   Default options include 'Giordano 2008', 'Hess and Dingwell 1996', and
+%   'Peralkaline Giordano 2000'.
+% EOSModel: String, case for water equation of state model, see
+%   getFunctions_v2.m. Default options include 'Ideal Gas Law' and 'Pitzer
+%   and Sterner'.
+% CpModel: string, case for specific heat capacity model as a function of 
+%   vesicularity, see getFunctions_thermal.m. Default options include 
+%   'BagdassarovDingwell1994'.
+% CpmeltModel: String, case for specific heat capacity model as a function
+%   of melt composition, see getFunctions_thermal.m. Default options 
+%   include 'Stebbins'.
+% kmodel: string, case for thermal conductivity as a function of
+%   vesicularity, see getFunctions_thermal.m. Default options include
+%   'RayleighMaxwell' and 'Bruggeman'.
+% kmeltModel: String, case for thermal conductivity model as a function of
+%   melt composition, see getFunctions_thermal. Default options include 
+%   'BagdassarovDingwell1994'.
+% rhoModel: String, case for melt density as a function of temperature, see
+%   getFunctions_thermal.m. Default options include
+%   'BagdassarovDingwell1994' and 'ConstantExpansivity'.
+% PermModel: String, case for permeability as a function of vesicularity,
+%   see getFunctions_outgas.m. Default options include 'Mueller2005Eff',
+%   'Mueller2005Exp', and 'None'.
+% OutgasModel: String, case for surface diffusive outgassing, see
+%   getFunctions_outgas.m. Default options include 'Diffusive' and 'None'.
+%   Pp: 1x1 numeric, partial pressure of water in environment in Pa. 
+% SurfTens: 1x1 or 1xn_magma numeric, surface tension between water and 
+%   melt in N/m.
+% melt_rho: 1x1 or 1xn_magma numeric, reference melt density in kg/m3.
+% rock_rho: 1x1 or 1xn_magma numeric, reference rock density in kg/m3, only
+%   used in 'Cylindrical' geometry.
+% alpha: 1x1 numeric, melt linear thermal expansivity in 1/K, only used if
+%   rhoModel = 'ConstantExpansivity').
+% melt_beta: 1x1 numeric, melt compressibility in 1/Pa. 
+% etar: 1x1 numeric, relative suspension viscosity to account for e.g.
+%   suspended crystal phases in [Pas]/[Pas]. Reference value for no
+%   suspended crystal phase is 1. 
+% Nb_0: 1x1 or 1xn_magma numeric, initial bubble number density in 1/m3. 
+% R_0: 1x1 or 1xn_magma numeric, initial bubble radius in m. For best 
+%   performance should be greater than 1e-6. 
+% P_0: 1x1 numeric, initial environmental pressure in Pa. See PTtModel in
+%   getFunctions_v2.m.
+% P_f: 1x1 numeric, final environmental pressure in Pa. See PTtModel in
+%   getFunctions_v2.m.
+% dPdt: 1x1 numeric, environmental pressurization rate in Pa/s. See 
+%   PTtModel in getFunctions_v2.m.
+% T_0: 1x1 numeric, initial environmental temperature in K. See PTtModel in
+%   getFunctions_v2.m.
+% T_f: 1x1 numeric, final environmental temperature in K. See PTtModel in
+%   getFunctions_v2.m.
+% dTdt: 1x1 numeric, environmental temperature change rate in K/s. See 
+%   PTtModel in getFunctions_v2.m.
+% t_quench: 1x1 numeric, time for cooling onset in s. See PTtModel in
+%   getFunctions _v2.m.
+% tf: 1x1 numeric, final simulation time in s. 
+% PTtModel: String, case for environmental pressure/temperature path. See
+%   getFunctions_v2.m. Default options include 'P: Isobaric, T: Isothermal'
+%   'P: Isobaric, T: Polythermal-Dwell', 'P: Polybaric-Dwell, T: 
+%   Isothermal-quench', 'Quench', 'Experiment', 'Optical dilatometer', 
+%   'Jenny'. 
+% Buoyancy: Boolean, flag for including buoyancy, only used in 
+%   'Cylindrical' geometry.
+% solve_T: Boolean, flag to turn on/off temperature solution. If False,
+%   suspension-scale temperature is always the same as the applied
+%   environmental temperature. 
+% t_min: 1x1 numeric, minimum time step in s. Simulation will run at lower
+%   time step if required for convergence. Initial time step is 10*t_min
+% t_max: 1x1 numeric, maximum time step in s. 
+% nt: 1x1 numeric, maximum number of time steps. Simulation will end after
+%   nt steps, even if tf has not been reached. 
+% n_magma: 1x1 numeric, number of spatial nodes at the suspension scale
+%   (recommended ~10). 
+% options: Name-value arguments (optional)
+%   Nodes: 1x1 numeric, number of nodes in bubble-scale discretization
+%   Numerical_Tolerance: 1x2 numeric, tolerances passed to bubble-scale
+%       model. See Numerical_Model_v2.m.
+%   eta_max: 1x1 numeric, maximum allowable suspension viscosity in Pas.
+%
+%--------------------------------------------------------------------------
+% Outputs: 
+% u: n x n_magma+1 numeric, suspension velocity in m/s. n is the total number
+%   of time steps and <=nt. 
+% phi: n x n_magma numeric, suspension-scale vesicularity in vol. frac. 
+% rho: n x 2*n_magma+1 numeric, suspension density in kg/m3. 
+% drhodt: n x 2*n_magma+1 numeric, rate of change of suspension density in 
+%   kg/m3/s. 
+% melt_visc: n x 2*n_magma+1 numeric, melt viscosity in Pas. 
+% eta: n x n_magma numeric, suspension viscosity in Pas. 
+% P: n X n_magma numeric, suspension pressure in Pa. 
+% H2O: n x n_magma x Nodes numeric, water concentration in melt in wt.%. 
+% xH2O: n x n_magma x Nodes numeric, radial-coordinate in the melt in m.
+% R: n x n_magma numeric, bubble radius in m. 
+% Nb: n x n_magma numeric, bubble number density in 1/m3. 
+% T: n x 2*n_magma+1 numeric, temperature in K. 
+% Cc: n x n_magma numeric, dynamic capillary number. 
+% pb_loss: n x n_magma numeric, vapor pressure in bubble in Pa. 
+% m_loss: n x n_magma numeric, mass of water in bubble in kg.
+% zz_p: n x n_magma numeric, coordinates of suspension-scale pressure nodes
+%   in m.
+% zz_u: n x n_magma+1 numeric, coordinates of suspension-scale velocity 
+%   nodes in m.
+% zz_t: n x 2*n_magma+1 numeric, coordinates of suspension-scale 
+%   temperature nodes in m. zz_t(2:2:end) = zz_p and zz_t(1:2:end) = zz_u.
+% t: 1xn numeric, time in s. 
+% hoop_stress: n X n_magma numeric, hoop stress in Pa. 
+% along_strain_rate: n x n_magma+1 numeric, strain-rate in the coordinate
+%   direction (radial in 'Radial' or vertical in 'Cylindrical') in 1/s. 
+% transverse_strain_rate: n x n_magma+1 numeric, strain-rate in the radial
+%   direction in 'Cylindrical' geometry in 1/s.
+% bubble_strain_rate: n x n_magma numeric, tangential strain rate at bubble
+%   wall in 1/s.
+%
+
+arguments
+    Composition double
+    H2Ot_0 double
+    Geometry string 
+    radius double
+    z_int0 double
+    BC string
+    BC_type string
+    BC_T double
+    flux double 
+    SolModel string
+    DiffModel string
+    ViscModel string
+    EOSModel string
+    CpModel string
+    CpmeltModel string
+    kModel string
+    kmeltModel string
+    rhoModel string
+    PermModel string
+    OutgasModel string
+    Pp double
+    SurfTens double
+    melt_rho double
+    rock_rho double
+    alpha double 
+    melt_beta double 
+    etar double 
+    Nb_0 double
+    R_0 double
+    P_0 double
+    P_f double 
+    dPdt double 
+    T_0 double 
+    T_f double 
+    dTdt double
+    t_quench double
+    PTtModel string 
+    Buoyancy double
+    tf double
+    solve_T double
+    t_min double
+    t_max double 
+    nt double
+    n_magma double 
+    options.Nodes = 50
+    options.Numerical_Tolerance = [1e-5, 1e-4]
+    options.eta_max = 1e12
+    options.pp = 0.1*P_0
+end
 
 %Gets the matlab filename
 mfilename;
@@ -32,18 +240,18 @@ warning('off','MATLAB:nearlySingularMatrix')
 if solve_T
 [ThermFun,cpmeltFun,cpFun,kmeltFun,kFun,...
     rhoFun] = getFunctions_thermal(Geometry,BC_type,...
-    'BagdassarovDingwell1994','Bruggeman',rhoModel,alpha,T_0);
+    CpModel,CpmeltModel,kModel,kmeltModel,rhoModel,alpha,T_0);
 kmelt = kmeltFun(Composition);
 end
 
 %Finite difference parameters
-Nodes = 50; %Number of nodes in spatial discretization
+Nodes = options.Nodes; %Number of nodes in spatial discretization
 
 %Numerical tolerance:
-%[Absolute tolerance, relative tolerance], see:
-Numerical_Tolerance = [1e-5, 1e-4];
-eta_max = 1e12;
-Tgfun = @(T) ViscFun(H2Ot_0,T,Composition) - 1e12;
+%[Absolute tolerance, relative tolerance]:
+Numerical_Tolerance = options.Numerical_Tolerance;
+eta_max = options.eta_max;
+Tgfun = @(T) ViscFun(H2Ot_0,T,Composition) - options.eta_max;
 Tg = fzero(Tgfun,600+273);
 
 %Time discretization
@@ -66,7 +274,7 @@ switch Geometry
         g = 9.81;
 end
 
-% Intialize variables
+% Initialize variables
 [zz_t,tt_t] = meshgrid(z_t,t);
 [zz_p,tt_p] = meshgrid(z_p,t);
 [zz_u,tt_u] = meshgrid(z_u,t);
@@ -100,7 +308,6 @@ dudr = zeros(size(tt_p));
 u_t = 0*z_t;
 
 W = Mass_SingleOxygen(Composition);
-pp = 0.1*101.3e3; %2.3e3; % Partial pressure of water in surroundings
 
 % Model tolerances
 erri = 5e-4;
@@ -149,6 +356,7 @@ while t(max([1,i-1]))<tf && i<=nt
     if i == 1
 
         % get initial density
+        phi_0 = (4/3)*pi()*R_0.^3./(1./Nb_0);
         phi_interp = phi_0;
         if solve_T       
             rho(i,:) = rhoFun(melt_rho,T_0 + T(1,:)).*(1-phi_interp) + density(P_0+(2.*(SurfTens)./R_0),T_0,coefficients()).*phi_interp;
@@ -165,11 +373,10 @@ while t(max([1,i-1]))<tf && i<=nt
                 Plith = P_0*ones(size(P(i,:)));
             case 'Cylindrical'
 
-                switch Buoyancy
-                    case 'True'
+                if Buoyancy
                         P(i,:) = cumsum(rho(i,2:2:end).*dz*g,'reverse')*g + P_0;
                         Plith = cumsum(rock_rho.*dz*g,'reverse')*g + P_0;
-                    case 'False'
+                else
                         P(i,:) = cumsum(rho(i,2:2:end).*dz*g,'reverse')*g + P_0;
                         Plith = cumsum(rho(i,2:2:end).*dz*g,'reverse')*g + P_0;
                 end
@@ -194,7 +401,7 @@ while t(max([1,i-1]))<tf && i<=nt
         xH2O(i,:,:) = repmat((xB(2:end,1)+xB(1:end-1,1))/2,[1,length(z_p)])';
 
         melt_visc(i,:) = min(eta_max,ViscFun(H2Ot_0,T(i,:)',Composition));
-        melt_visc(i,T(i)<=500) = eta_max./etar;
+        melt_visc(i,T(i,:)<=500) = eta_max./etar;
         eta(i,:) =  melt_visc(i,2:2:end).*etar;
         beta(i,:) = phi(i,:)./P(i,:) + (1-phi(i,:)).*melt_beta;
         dudr(i,:) = 0;
@@ -326,7 +533,7 @@ while t(max([1,i-1]))<tf && i<=nt
             pb_interp = pb_interp((zz_t(i-1,:)));
 
             % Bulk density
-            if solve_T % Account for thermal expantion
+            if solve_T % Account for thermal expansion
                 rho(i,:) = rhoFun(melt_rho,T(i-1+n,:)).*(1-phi_interp) + density(pb_interp,T(i-1+n,:)',coefficients()).*phi_interp;
             else
                 rho(i,:) = melt_rho.*(1-phi_interp) + density(pb_interp,T(i-1+n,:)',coefficients()).*phi_interp;
@@ -363,8 +570,8 @@ while t(max([1,i-1]))<tf && i<=nt
             H2O_temp = squeeze(H2O(i-1,:,:));
             switch OutgasModel
                 case 'Diffusive'
-                    D = DiffFun([H2O(i-1,:,end),SolFun(BC_T(end),pp)],[T(i,2:2:end),T(i,end)], [P(i-1,:),P_0], W);
-                    mean_H2O_diff = OutgasFun([H2O(i-1,:,end),SolFun(BC_T(end),pp)],[H2O(i-1,:,end),SolFun(BC_T(end),pp)],D,[zz_p(i-1,:),zz_u(i-1,end)],dt,dt,SolFun(BC_T(end),pp),'BDF1');
+                    D = DiffFun([H2O(i-1,:,end),SolFun(BC_T(end),Pp)],[T(i,2:2:end),T(i,end)], [P(i-1,:),P_0], W);
+                    mean_H2O_diff = OutgasFun([H2O(i-1,:,end),SolFun(BC_T(end),Pp)],[H2O(i-1,:,end),SolFun(BC_T(end),Pp)],D,[zz_p(i-1,:),zz_u(i-1,end)],dt,dt,SolFun(BC_T(end),Pp),'BDF1');
                     H2O_temp(:,end) = mean_H2O_diff(1:end-1);
             end
 
@@ -465,8 +672,8 @@ while t(max([1,i-1]))<tf && i<=nt
             % estimate
             switch OutgasModel
                 case 'Diffusive'
-                    H2O_diff = griddedInterpolant([zz_p(i-1,:), zz_u(i-1,end)],[mean_H2O(i,2:2:end),SolFun(BC_T(end),pp)],'pchip','nearest');
-                    H2O_diff_edge = griddedInterpolant([zz_p(i-1,:), zz_u(i-1,end)],[squeeze(H2O(i,:,end)),SolFun(BC_T(end),pp)],'pchip','nearest');
+                    H2O_diff = griddedInterpolant([zz_p(i-1,:), zz_u(i-1,end)],[mean_H2O(i,2:2:end),SolFun(BC_T(end),Pp)],'pchip','nearest');
+                    H2O_diff_edge = griddedInterpolant([zz_p(i-1,:), zz_u(i-1,end)],[squeeze(H2O(i,:,end)),SolFun(BC_T(end),Pp)],'pchip','nearest');
                     H2O_edge = trapz(linspace(zz_p(i-1,end),zz_u(i-1,end),100).^3,H2O_diff_edge(linspace(zz_p(i-1,end),zz_u(i-1,end),100)))./(zz_u(i-1,end).^3-zz_p(i-1,end).^3);
                     mean_H2O(i,1:2:end) = H2O_diff(zz_u(i-1,1:end));
                     mean_H2O(i,end) = H2O_edge;
@@ -606,11 +813,10 @@ while t(max([1,i-1]))<tf && i<=nt
             % set initial pressure
             switch Geometry
                 case 'Cylindrical'
-                    switch Buoyancy
-                        case 'True'
-                             Plith = cumsum(rock_rho.*dz*g,'reverse')*g + PT(1);
-                        case 'False'
-                             Plith = cumsum(rho(i,2:2:end).*dz*g,'reverse')*g + PT(1);
+                    if Buoyancy
+                        Plith = cumsum(rock_rho.*dz*g,'reverse')*g + PT(1);
+                    else
+                        Plith = cumsum(rho(i,2:2:end).*dz*g,'reverse')*g + PT(1);
                     end
             end
 

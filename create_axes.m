@@ -1,4 +1,35 @@
 function [ax] = create_axes(npanels,orientation,varargin)
+% Create nice-looking, labeled axes in current figure
+% 
+%--------------------------------------------------------------------------
+% Inputs: 
+% npanels: integer, total number of panels across all rows/columns.
+% orientation: string, define arrangement of panels
+%   'vertical' creates stacked plots which share an x-axis.
+%   'double-column' creates two columns of stacked plots which each share 
+%       an x-axis.
+%   'double-row' creates two rows of stacked plots which each share an
+%       y-axis.
+%   'horizontal' creates stacked plots which share a y-axis.
+%   'horizontal_color' creates stacked plots which share a y-axis, with
+%       space on the right of the plot for a color legend.
+%   'tile_close' creates stacked plots which share x- and y-axes optimized
+%       to be roughly square (e.g. 3 x 4) with little space between panels
+%       (space for axes labels only on exteriors).
+%   'tile_close_color' same as 'tile_close' with space on the right of the 
+%       plot for a color legend.
+%   'tile_open' creates stacked plots which share x- and y-axes optimized
+%       to be roughly square (e.g. 3 x 4) with sufficient space between 
+%       panels for axes labels on all panels.
+%   'tile_open_sharex' creates stacked plots which share x- and y-axes 
+%       optimized to be roughly square (e.g. 3 x 4) with sufficient space 
+%       between panels for y-axes labels on all panels, but x-labels only
+%       on bottom row.
+% optional arguments: 
+%   lowercase: true for lowercase panel labels, false for uppercase. 
+%   color: panel label text color.
+%
+
 
 params.lowercase = false;
 params.color = 'k';

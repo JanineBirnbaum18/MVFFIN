@@ -1,19 +1,74 @@
-function [ThermFun,cpmeltFun,cpFun,kmeltFun,kFun,rhoFun] = getFunctions_thermal(Geometry,BC_type,CpModel,kmodel,rhoModel,alpha,T0)
+function [ThermFun,CpmeltFun,CpFun,kmeltFun,kFun,...
+    rhoFun] = getFunctions_thermal(Geometry,BC_type,CpModel,CpmeltModel, ...
+    kModel,kmeltModel,rhoModel,alpha,T0)
+% Supporting functions for main.m
+% Solves thermal conduction equations in 1D in 'Radial' (spherical 
+% coordinates) and 'Cylindrical' (cylindrical coordinates, defined along 
+% the axis of symmetry (reduced complexity in the radial direction). 
+% Further functions for 2D cases are not fully supported for the
+% coupled model.
+%
+%--------------------------------------------------------------------------
+% Inputs:
+% Geometry: String, 'Radial' or 'Cylindrical' to switch between symmetry.
+% BC_type: String, 'Dirichlet' or 'Forced' to specify thermal boundary
+%   condition at exterior/top boundary. 'Dirichlet' will set the
+%   temperature to the applied temperature path (specified in BC_T) at 
+%   each time, 'Forced' drives toward the applied temperature via
+%   conduction and forced convection.
+% CpModel: String, case for specific heat capacity model as a function of 
+%   vesicularity. Default options include 'BagdassarovDingwell1994'
+% CpmeltModel: String, case for specific heat capacity model as a function
+%   of melt composition. Default options include 'Stebbins'.
+% kModel:  string, case for thermal conductivity as a function of
+%   vesicularity. Default options include 'RayleighMaxwell' and
+%   'Bruggeman'.
+% kmeltModel: String, case for thermal conductivity model as a function of
+%   melt composition. Default options include 'BagdassarovDingwell1994'.
+% rhoModel: String, case for melt density as a function of temperature, see
+%   getFunctions_thermal.m. Default options include
+%   'BagdassarovDingwell1994' and 'ConstantExpansivity'.
+% alpha: 1x1 numeric, melt linear thermal expansivity in 1/K, only used if
+%   rhoModel = 'ConstantExpansivity').
+% T0: 1x1 numeric, reference temperature for thermal expansion in K, only
+%   used if rhoModel = 'ConstantExpansivity').
+%
+%--------------------------------------------------------------------------
+% Outputs:
+% ThermFun: function definition for heat flow equation in specified 
+%   geometry.
+% CpmeltFun: function definition for melt specific heat capacity 
+%   constitutive relationship.
+% CpFun: function definition for bulk specific heat capacity constitutive
+%   relationship.
+% kmeltFun: function definition for melt thermal conductivity constitutive
+%   relationship.
+% kFun: function definition for bulk thermal conductivity constitutive
+%   relationship.
+% rhoFun: function definition for melt density constitutive relationship. 
+%
 
 switch Geometry
     case 'Radial'
-        ThermFun = @(T1,T2,rho,cp,k,z_t,dt1,dt2,BC,flux,timescheme)Spherical_temp(T1,T2,rho,cp,k,z_t,dt1,dt2,BC_type,BC,flux,timescheme);
+        ThermFun = @(T1,T2,rho,cp,k,z_t,dt1,dt2,BC,flux, ...
+        timescheme)Spherical_temp(T1,T2,rho,cp,k,z_t,dt1,dt2,BC_type,BC, ...
+        flux,timescheme);
 
     case 'Cylindrical'
-        ThermFun = @(T1,T2,rho,cp,k,z_t,dt1,dt2,BC,flux,timescheme)Cylindrical_temp(T1,T2,rho,cp,k,z_t,dt1,dt2,BC_type,BC,flux,timescheme);
+        ThermFun = @(T1,T2,rho,cp,k,z_t,dt1,dt2,BC,flux, ...
+        timescheme)Cylindrical_temp(T1,T2,rho,cp,k,z_t,dt1,dt2,BC_type,BC, ...
+        flux,timescheme);
    
     case '2D Cylindrical'
-        ThermFun = @(T1,T2,rho,cp,k,z_t,dt1,dt2,BC,flux,timescheme)Cylindrical2D_temp(T1,T2,rho,cp,k,z_t,dt1,dt2,BC_type,BC,flux,timescheme);
+        ThermFun = @(T1,T2,rho,cp,k,z_t,dt1,dt2,BC,flux, ...
+        timescheme)Cylindrical2D_temp(T1,T2,rho,cp,k,z_t,dt1,dt2,BC_type, ...
+        BC,flux,timescheme);
 end
 
 switch CpModel
     case 'BagdassarovDingwell1994'
-        cpFun = @(phi,cpmelt,rhomelt,T,P)BagdassarovDingwell1994Cp(phi,cpmelt,rhomelt,T,P);
+        CpFun = @(phi,cpmelt,rhomelt,T,P)BagdassarovDingwell1994Cp(phi, ...
+        cpmelt,rhomelt,T,P);
 end
 
 switch rhoModel
@@ -23,12 +78,34 @@ switch rhoModel
         rhoFun = @(rho0,T)ConstantExpansivity(rho0,T,alpha,T0);
 end
 
-kmeltFun = @(Composition)BagdassarovDingwell1994kmelt(Composition);
-kFun = @(phi,kmelt)BagdassarovDingwell1994kfoam(phi,kmelt,kmodel);
-rhoFun = @(rho0,T)BagdassarovDingwell1994rho(rho0,T);
-cpmeltFun = @(Composition,T,wtH2O)Stebbins(Composition,T,wtH2O);
+switch kmeltModel
+    case 'BagdassarovDingwell1994'
+        kmeltFun = @(Composition)BagdassarovDingwell1994kmelt(Composition);
+end
 
-function [T] = Cylindrical_temp(T1,T2,rho,cp,k,z_T,dt1,dt2,BC_type,BC,flux,timescheme)
+switch CpmeltModel
+    case 'Stebbins'
+        CpmeltFun = @(Composition,T,wtH2O)Stebbins(Composition,T,wtH2O);
+end
+
+kFun = @(phi,kmelt)kfoamModel(phi,kmelt,kModel);
+
+function [k] = kfoamModel(phi,kmelt,kmodel)
+switch kmodel
+    case 'RayleighMaxwell'
+        k = kmelt.*(1-phi)./(1+phi);
+    case 'Bruggeman'
+        k = kmelt.*(1-phi).^(3/2);
+end
+
+function [rho] = BagdassarovDingwell1994rho(rho0,T)
+rho=rho0*(1 + 4.635e-6.*(T-273) + 0.654e-9.*(T-273).^2).^(-3); 
+
+function[rho] = ConstantExpansivity(rho0,T,alpha, T0)
+rho = rho0*(1 - (T-T0)*alpha);
+
+function [T] = Cylindrical_temp(T1,T2,rho,cp,k,z_T,dt1,dt2,BC_type,BC,flux, ...
+timescheme)
 
 Bt = (dt1 + dt2)/dt1/dt2;
 Dt = dt1/dt2/(dt1+dt2);
@@ -419,18 +496,3 @@ function [kmelt] = BagdassarovDingwell1994kmelt(Composition)
 Pi = [-1.062, 0, 0.449, -1.687, 0, -3.318, -1.905, -1.952, -3.939, 0, 0, 0];
 Wi = Composition./(sum(Composition([1,3, 4, 6, 7, 8, 9])));
 kmelt = 2.371 + sum(Pi.*Wi);
-
-function [k] = BagdassarovDingwell1994kfoam(phi,kmelt,model)
-
-switch model
-    case 'RayleighMaxwell'
-    k = kmelt.*(1-phi)./(1+phi);
-    case 'Bruggeman'
-    k = kmelt.*(1-phi).^(3/2);
-end
-
-function [rho] = BagdassarovDingwell1994rho(rho0,T)
-rho=rho0*(1 + 4.635e-6.*(T-273) + 0.654e-9.*(T-273).^2).^(-3); 
-
-function[rho] = ConstantExpansivity(rho0,T,alpha, T0)
-rho = rho0*(1 - (T-T0)*alpha);

@@ -1,4 +1,29 @@
-function [DarcyFun,PermFun,WaterViscModel,OutgasFun] = getFunctions_outgas(Geometry,PermModel,OutgasModel)
+function [DarcyFun,PermFun,WaterViscModel,...
+    OutgasFun] = getFunctions_outgas(Geometry,PermModel,OutgasModel)
+% Supporting functions for main.m
+% Solves water vapor loss through 1) diffusive gas loss at the exterior
+% surface and 2) permeable flow in 1D in 'Radial' (spherical coordinates) 
+% and 'Cylindrical' (cylindrical coordinates, defined along the axis of 
+% symmetry (reduced complexity in the radial direction). 
+%
+%--------------------------------------------------------------------------
+% Inputs: 
+% Geometry: String, 'Radial' or 'Cylindrical' to switch between symmetry.
+% PermModel: String, case for permeability as a function of vesicularity.
+%   Default options include 'Mueller2005Eff', 'Mueller2005Exp', and 'None'.
+% OutgasModel: String, case for surface diffusive outgassing. Default 
+%   options include 'Diffusive' and 'None'.
+%
+%--------------------------------------------------------------------------
+% Outputs:
+% DarcyFun: function definition for permeable (Darcy) flow in specified 
+%   geometry.
+% PermFun: function definition for permeability constitutive relationship. 
+% WaterViscModel: function definition for water viscosity constitutive
+%   relationship. 
+% OutGasFun: function definition for diffusive gas loss through the free
+%   surface. 
+%
 
 switch Geometry
     case 'Radial'
@@ -32,7 +57,6 @@ end
 switch PermModel
     case 'Mueller2005Eff'
         PermFun = @(phi,Cc)Mueller2005Eff(phi);
-
     case 'Mueller2005Exp'
         PermFun = @(phi,Cc)Mueller2005Exp(phi);
     case 'None'
@@ -123,30 +147,6 @@ Bt = (dt1 + dt2)/dt1/dt2;
 Dt = dt1/dt2/(dt1+dt2);
 Ft = (dt2+2*dt1)/dt1/(dt2+dt1);
 
-% [h1,h2,A,B,C,D,E,F] = FDcoeff(z_T);
-% dH2Odz = diag(-D(2:end),-1) + diag(-E) + diag(C(1:end-1),1);
-% dH2Odz(1,1:3) = [-A(1), B(1), -C(1)];
-% dH2Odz(end,end-2:end) = [D(end), -B(end), F(end)];
-% 
-% dKdz = [-A(1)*K(1) + B(1)*K(2) - C(1)*K(3), ...
-%         -D(2:end-1).*K(1:end-2) - E(2:end-1).*K(2:end-1) + C(2:end-1).*K(3:end), ...
-%         D(end).*K(end-2) - B(end).*K(end-1) + F(end).*K(end)];
-% 
-% d2H2Odz2 = diag(2*h2(2:end)./(h1(2:end).*h2(2:end).*(h1(2:end)+h2(2:end))),-1) +...
-%     diag(-2*(h1+h2)./(h1.*h2.*(h1+h2))) + ...
-%     diag(2*h1(1:end-1)./(h1(1:end-1).*h2(1:end-1).*(h1(1:end-1)+h2(1:end-1))),1);
-% d2H2Odz2(1,1:4) = [2*(3*h1(1) + 2*h2(1) + h2(3))./h1(1)./(h1(1) + h2(1))./(h1(1)+h2(1)+h2(3)), ...
-%                  -2*(2*h1(1) + 2*h2(1) + h2(3))./h1(1)./h2(1)./(h2(1) + h2(3)),...
-%                  2*(2*h1(1) + h2(1) + h2(3))./(h1(1) + h2(1))./h2(1)./h2(3),...
-%                  -2*(2*h1(1) + h2(1))./(h1(1) + h2(1) + h2(3))./(h2(1) + h2(3))./h2(3)];
-% d2H2Odz2(end,end-3:end) = [-2*(h2(end-2) + 2*h2(end))./h1(end-2)./(h1(end-2)+h2(end-2))./(h1(end-2) + h2(end-2) + h2(end)),...
-%                          2*(h1(end-2) + h2(end-2) + 2*h2(end))./h1(end-2)./h2(end-2)./(h2(end-2)+h2(end)),...
-%                          -2*(h1(end-2) + 2*h2(end-2) + 2*h2(end))./(h1(end-2)+h2(end-2))./h2(end-2)./h2(end),...
-%                          2*(h1(end-2) + 2*h2(end-2) + 3*h2(end))./(h1(end-2) + h2(end-2) + h2(end))./(h2(end-2) + h2(end))./h2(end)];
-
-
-%XX = (dKdz'.*dH2Odz + K'.*d2H2Odz2);
-
 Kstag = (K(2:end) + K(1:end-1))/2;
 zstag = (z_T(2:end) + z_T(1:end-1))/2;
 dH2Odt = -[0 1./diff(zstag) 0]'.*(diag([-Kstag(1:end-1)./(z_T(2:end-1) - z_T(1:end-2)), 0],-1) + ...
@@ -197,33 +197,6 @@ dH2Odt = -[0 1./(z_T(2:end-1).^2)./diff(zstag) 0]'.*(diag([-zstag(1:end-1).^2.*K
 dH2Odt(1,:) = dH2Odt(2,:);
 dH2Odt(end,:) = dH2Odt(end-1,:);
 
-%dH2Odt = [dH2Odt(1) dH2Odt 0];
-
-
-% [h1,h2,A,B,C,D,E,F] = FDcoeff(z_T);
-% dH2Odz = diag(-D(2:end),-1) + diag(-E) + diag(C(1:end-1),1);
-% dH2Odz(1,1:3) = [-A(1), B(1), -C(1)];
-% dH2Odz(end,end-2:end) = [D(end), -B(end), F(end)];
-% 
-% dKdz = [-A(1)*K(1) + B(1)*K(2) - C(1)*K(3), ...
-%         -D(2:end-1).*K(1:end-2) - E(2:end-1).*K(2:end-1) + C(2:end-1).*K(3:end), ...
-%         D(end).*K(end-2) - B(end).*K(end-1) + F(end).*K(end)];
-% 
-% d2H2Odz2 = diag(2*h2(2:end)./(h1(2:end).*h2(2:end).*(h1(2:end)+h2(2:end))),-1) +...
-%     diag(-2*(h1+h2)./(h1.*h2.*(h1+h2))) + ...
-%     diag(2*h1(1:end-1)./(h1(1:end-1).*h2(1:end-1).*(h1(1:end-1)+h2(1:end-1))),1);
-% d2H2Odz2(1,1:4) = [2*(3*h1(1) + 2*h2(1) + h2(3))./h1(1)./(h1(1) + h2(1))./(h1(1)+h2(1)+h2(3)), ...
-%                  -2*(2*h1(1) + 2*h2(1) + h2(3))./h1(1)./h2(1)./(h2(1) + h2(3)),...
-%                  2*(2*h1(1) + h2(1) + h2(3))./(h1(1) + h2(1))./h2(1)./h2(3),...
-%                  -2*(2*h1(1) + h2(1))./(h1(1) + h2(1) + h2(3))./(h2(1) + h2(3))./h2(3)];
-% d2H2Odz2(end,end-3:end) = [-2*(h2(end-2) + 2*h2(end))./h1(end-2)./(h1(end-2)+h2(end-2))./(h1(end-2) + h2(end-2) + h2(end)),...
-%                          2*(h1(end-2) + h2(end-2) + 2*h2(end))./h1(end-2)./h2(end-2)./(h2(end-2)+h2(end)),...
-%                          -2*(h1(end-2) + 2*h2(end-2) + 2*h2(end))./(h1(end-2)+h2(end-2))./h2(end-2)./h2(end),...
-%                          2*(h1(end-2) + 2*h2(end-2) + 3*h2(end))./(h1(end-2) + h2(end-2) + h2(end))./(h2(end-2) + h2(end))./h2(end)];
-
-
-%%XX = ((2*K./z_T + dKdz)'.*dH2Odz + K'.*d2H2Odz2);
-%XX = dH2Odz*(z_T.^2.*K'.*dH2Odz)./z_T.^2;
 switch timescheme
     case 'BDF1'
     M = eye(size(dH2Odt)) - dt1.*dH2Odt;

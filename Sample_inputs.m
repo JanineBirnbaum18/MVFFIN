@@ -10,7 +10,7 @@ Composition = Krafla;
 H2Ot_0 = 0.12; %initial water concentration (wt. %)
 %Dynamics geometry
 Geometry = 'Radial'; 
-BC = 'Symmetry';
+BC = 'No stress';
 BC_type = 'Dirichlet';
 BC_T = 1006+273.15;
 flux = 0;
@@ -24,6 +24,10 @@ ViscModel = 'Hess and Dingwell 1996';
 EOSModel = 'Pitzer and Sterner';
 
 %Thermal properties
+CpModel = 'BagdassarovDingwell1994';
+CpmeltModel = 'Stebbins';
+kModel = 'Bruggeman';
+kmeltModel = 'BagdassarovDingwell1994';
 rhoModel = 'BagdassarovDingwell1994';
 alpha = 0;
 
@@ -35,7 +39,6 @@ OutgasModel = 'Diffusive';
 SurfTens = 0.22; %Value for surface tension (N/m)
 melt_rho = 2400; %Melt density in kg/m^3
 rock_rho = 2400; %Country rock density in kg/m^3
-env_rho = 1; %Surrounding air or water density in kg/m^3
 melt_beta = 2.6e-11; % Malfait et al. (2011)
 
 %Spatial parameters
@@ -62,9 +65,7 @@ n_magma = 10;
 t_min = 10;
 t_max = 600;
 
-% radii = [0.0001:0.001:0.0016] ; 
-% radii= (0.1:0.1:1.6)*1e-3;
-radii = [1.5]*1e-3;
+radii= (0.1:0.1:1.6)*1e-3;
 
 resolution = 60; %s
 tn = 0:resolution:21600;
@@ -75,10 +76,11 @@ for i = 1:length(radii)
     [u, phi, rho, drhodt, melt_visc, eta, P, H2O, xH2O, R, Nb, T, Cc, pb,...
     m_loss, zz_p, zz_u, zz_t, t] = main(Composition, H2Ot_0,...
          Geometry, radius, z_int0, ...
-    BC, BC_type, BC_T, flux, SolModel, DiffModel, ViscModel, EOSModel, rhoModel,...
-    PermModel, OutgasModel, SurfTens, melt_rho,...
-    rock_rho, env_rho, alpha, melt_beta, 1, Nb_0, R_0, phi_0,...
-    P_0, P_f, dPdt, T_0, T_f, PTtModel, Buoyancy, dTdt, t_quench, tf,...
+    BC, BC_type, BC_T, flux, SolModel, DiffModel, ViscModel, EOSModel, ...
+    CpModel, CpmeltModel, kModel, kmeltModel, rhoModel,...
+    PermModel, OutgasModel, 0.1*P_0, SurfTens, melt_rho,...
+    rock_rho, alpha, melt_beta, 1, Nb_0, R_0,...
+    P_0, P_f, dPdt, T_0, T_f, dTdt, t_quench, PTtModel, Buoyancy, tf,...
     solve_T, t_min, t_max, nt, n_magma);
 
 

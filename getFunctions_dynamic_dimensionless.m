@@ -1,4 +1,23 @@
 function [DynFun] = getFunctions_dynamic_dimensionless(Geometry,BC)
+% Supporting functions for main.m
+% Solves non-dimensionalized linearized, compressible Navier-Stokes flow 
+% equations in 1D in 'Radial' (spherical coordinates) and 'Cylindrical' 
+% (cylindrical coordinates, defined along the axis of symmetry (reduced 
+% complexity in the radial direction). 
+% Further functions for 2D cases are not fully supported for the
+% coupled model.
+%
+%--------------------------------------------------------------------------
+% Inputs:
+% Geometry: String, 'Radial' or 'Cylindrical' to switch between symmetry.
+% BC: String, 'No normal' or 'No stress' to specify no normal flow or zero
+%   traction condition at bottom boundary of suspension, only used in
+%   'Cylindrical' geometry.
+%
+%--------------------------------------------------------------------------
+% Outputs:
+% DynFun: function definition for flow equation in specified geometry.
+%
 
 %warning('off','MATLAB:illConditionedMatrix')
 %warning('off','MATLAB:nearlySingularMatrix')
