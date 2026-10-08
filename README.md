@@ -19,9 +19,7 @@ create\_axes.m: support plotting function
 
 getFunctions\_dynamic\_dimensionless.m: support functions with numerical solver for linearized Navier-Stokes flow at the suspension scale
 
-getFunctions\_outgas.m: support functions with constitutive relationships and solvers for diffusive outgassing
-
-getFunctions\_permeable.m: support functions with constitutive relationships and solvers for permeable gas flow
+getFunctions\_outgas.m: support functions with constitutive relationships and solvers for diffusive outgassing and permeable flow
 
 getFunctions\_thermal.m: support functions with constitutive relationships and solvers for thermal diffusion
 
