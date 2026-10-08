@@ -9,13 +9,15 @@ Requires: Matlab, Optimization Toolbox
 ## Contains
 Coumans\_coupled.m: main function definition for suspension-scale dynamics and passing arguments to bubble-scale model
 
+Sample\_inputs.m: additional sample input script
+
 Julia\_clasts.m: sample input script for vesiculation of small grains 
+
+create\_axes.m: support plotting function
 
 Numerical\_Model\_v2.m: bubble-scale model solver from Coumans et al. (2020)
 
-Sample\_inputs.m: additional sample input script
-
-create\_axes.m: support plotting function
+get_Functions\_v2.m: support functions and constitutive relationships for bubble-scale model from Coumans et al. (2020)
 
 getFunctions\_dynamic\_dimensionless.m: support functions with numerical solver for linearized Navier-Stokes flow at the suspension scale
 
@@ -23,4 +25,3 @@ getFunctions\_outgas.m: support functions with constitutive relationships and so
 
 getFunctions\_thermal.m: support functions with constitutive relationships and solvers for thermal diffusion
 
-get_Functions\_v2.m: support functions and constitutive relationships for bubble-scale model from Coumans et al. (2020)
