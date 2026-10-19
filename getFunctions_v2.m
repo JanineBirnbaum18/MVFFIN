@@ -129,9 +129,9 @@ switch PTtModel
         PTt_fun = @(P_0, P_f, dPdt, T_0, T_f, dTdt, t_quench, t)...
             OpticalDilatometer_fun(P_0,P_f,dPdt,T_0,T_f,dTdt,t_quench,t);
 
-    case 'Jenny'
+    case 'Ramp'
         PTt_fun = @(P_0, P_f, dPdt, T_0, T_f, dTdt, t_quench, t)...
-            Jenny_fun(P_0,P_f,dPdt,T_0,T_f,dTdt,t_quench, t);
+            Ramp_fun(P_0,P_f,dPdt,T_0,T_f,dTdt,t_quench, t);
 end
 
 %==========================================================================
@@ -161,13 +161,10 @@ H2Oeq =((354.94.*sqrt(P)+9.623.*P-1.5223.*(P.^1.5))./T) + 0.0012439.*(P.^1.5);
 function H2Oeq = Weaver_sol(T)
 H2Oeq = 0.088 + 0*T;
 
-function H2Oeq = Krafla_sol(T)
-H2Oeq = 0.039 + 0*T;
-
 function H2Oeq = Schunke_sol(T,P)
 P = P*1e-6;
 %H2Oeq =((276.8*sqrt(P)+71.15.*P-1.5223.*(P.^1.5))./T) + 0.0012439.*(P.^1.5);
-PCO2 = 10;
+PCO2 = 0.1;
 H2Oeq =((354.94.*sqrt(P)+9.623.*P-1.5223.*(P.^1.5))./T) + 0.0012439.*(P.^1.5) + PCO2.*(-1.084.*1E-4.*sqrt(P)-1.362.*1E-5.*P);
 
 %==========================================================================
@@ -319,9 +316,9 @@ T = ((t<=P_t_Press).*T_0) + ...
 out = [P, T];
 
 function out = Evolving_fun(P_0,P_f,dPdt,T_0,dTdt,t)
-P = P_0 + t.*dPdt;% + t.*dPdt;
+P = P_0 + t.*dPdt;
 P(t>(P_f-P_0)/dPdt) = P_f;
-T = T_0 + t.*dTdt;% + t.*dTdt;
+T = T_0 + t.*dTdt;
 out = [P,T];
 
 function out = Quench_fun(P_0, P_f, dPdt,T_0,T_f,dTdt,t_quench,t)
@@ -357,7 +354,7 @@ T = (t<=T_t_hold1).*(T_0 + t.*dTdt) + ...
     (t>T_t_hold2 + t_quench(2)).*(T_f(2) - 2/60*(t-T_t_hold2-t_quench(2)));
 out = [P, T];
 
-function out = Jenny_fun(P_0, P_f, dPdt,T_0,T_f,dTdt,t_quench,t)
+function out = Ramp_fun(P_0, P_f, dPdt,T_0,T_f,dTdt,t_quench,t)
 T_t_Quench = abs((T_f-T_0)/dTdt(1));
 P_t_Press = abs((P_f-P_0)/dPdt);
 P = ((t<=P_t_Press).*(P_0 + t.*dPdt))+((t>P_t_Press).*P_f);

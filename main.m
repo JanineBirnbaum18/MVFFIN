@@ -40,13 +40,12 @@ function [u, phi, rho, drhodt, melt_visc, eta, P, H2O, xH2O, R, Nb, T, ...
 %   numeric, first argument is exterior temperature (will be over-written
 %   with time by PTtModel if BC_type = 'Dirichlet') and second argument is 
 %   the convective heat transfer coefficient for environmental fluid 
-%   (e.g. air, water). See getFunctions_thermal.m
+%   (e.g., air, water). See getFunctions_thermal.m.
 % flux: 1x1 numeric, applied exterior heat flux from conduit margins, only
 %   used in 'Cylindrical' geometry. Positive indicated heat flow into the
 %   magma. See getFunctions_thermal.m.
 % SolModel: String, case for solubility model, see getFunctions_v2.m.
-%   Default options include 'Ryan 2015', 'Liu 2005', 'Weaver',
-%   'Krafla_constant', 'Schunke'.
+%   Default options include 'Ryan 2015', 'Liu 2005', 'Weaver', 'Schunke'.
 % DiffModel: String, case for water diffusion model, see getFunctions_v2.m.
 %   Default options include 'Zhang 2010 Metaluminous simple', 'Zhang 2010
 %   Metaluminous', 'Zhang 2010 Peralkaline','Constant'.
@@ -83,9 +82,9 @@ function [u, phi, rho, drhodt, melt_visc, eta, P, H2O, xH2O, R, Nb, T, ...
 % rock_rho: 1x1 or 1xn_magma numeric, reference rock density in kg/m3, only
 %   used in 'Cylindrical' geometry.
 % alpha: 1x1 numeric, melt linear thermal expansivity in 1/K, only used if
-%   rhoModel = 'ConstantExpansivity').
+%   rhoModel = 'ConstantExpansivity'.
 % melt_beta: 1x1 numeric, melt compressibility in 1/Pa. 
-% etar: 1x1 numeric, relative suspension viscosity to account for e.g.
+% etar: 1x1 numeric, relative suspension viscosity to account for e.g.,Qun
 %   suspended crystal phases in [Pas]/[Pas]. Reference value for no
 %   suspended crystal phase is 1. 
 % Nb_0: 1x1 or 1xn_magma numeric, initial bubble number density in 1/m3. 
@@ -99,25 +98,25 @@ function [u, phi, rho, drhodt, melt_visc, eta, P, H2O, xH2O, R, Nb, T, ...
 %   PTtModel in getFunctions_v2.m.
 % T_0: 1x1 numeric, initial environmental temperature in K. See PTtModel in
 %   getFunctions_v2.m.
-% T_f: 1x1 numeric, final environmental temperature in K. See PTtModel in
+% T_f: 1x1 or 1x2 numeric, final environmental temperature in K. See PTtModel in
 %   getFunctions_v2.m.
 % dTdt: 1x1 numeric, environmental temperature change rate in K/s. See 
 %   PTtModel in getFunctions_v2.m.
 % t_quench: 1x1 numeric, time for cooling onset in s. See PTtModel in
-%   getFunctions _v2.m.
+%   getFunctions_v2.m.
 % tf: 1x1 numeric, final simulation time in s. 
 % PTtModel: String, case for environmental pressure/temperature path. See
 %   getFunctions_v2.m. Default options include 'P: Isobaric, T: Isothermal'
 %   'P: Isobaric, T: Polythermal-Dwell', 'P: Polybaric-Dwell, T: 
 %   Isothermal-quench', 'Quench', 'Experiment', 'Optical dilatometer', 
-%   'Jenny'. 
+%   'Ramp'. 
 % Buoyancy: Boolean, flag for including buoyancy, only used in 
 %   'Cylindrical' geometry.
 % solve_T: Boolean, flag to turn on/off temperature solution. If False,
 %   suspension-scale temperature is always the same as the applied
 %   environmental temperature. 
 % t_min: 1x1 numeric, minimum time step in s. Simulation will run at lower
-%   time step if required for convergence. Initial time step is 10*t_min
+%   time step if required for convergence. Initial time step is 10*t_min.
 % t_max: 1x1 numeric, maximum time step in s. 
 % nt: 1x1 numeric, maximum number of time steps. Simulation will end after
 %   nt steps, even if tf has not been reached. 
