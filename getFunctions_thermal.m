@@ -386,6 +386,7 @@ F = (h1 + 2*h2)./h2./(h1+h2);
 % thermal material properties
 function [cpmelt] = Stebbins(Composition,T,wtH2O)
 
+Composition(:,11) = 0;
 Composition = Composition'./(sum(Composition) + wtH2O);
 Composition(11,:) = wtH2O'/100;
 

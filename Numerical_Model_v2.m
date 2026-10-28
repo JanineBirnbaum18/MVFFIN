@@ -174,6 +174,7 @@ switch OutgasModel
         DH2Ot_full(nx+2:end) = D_mid*logspace(0,-1,nx-1);
 end
 DH2Ot = (DH2Ot_full(1:end-1) + DH2Ot_full(2:end))/2;
+DH2Ot(DH2Ot<0) = min(abs(DH2Ot)); % prevent negative diffusivities
 
 %====Solve water diffusion==== (equation A.4 from manuscript)
 %molecular diffusion flux

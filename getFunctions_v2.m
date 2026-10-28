@@ -213,7 +213,6 @@ function D = ConstantDiff_fun(H2Ot)
 DiffVal = 1e-11; %Diffusivity value in m^2 s^-1
 D = ones(size(H2Ot)).*DiffVal;
 
-
 %==========================================================================
 %Viscosity functions
 %==========================================================================

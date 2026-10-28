@@ -522,7 +522,11 @@ while t(max([1,i-1]))<tf && i<=nt
                     Bt = [-1/dt,-1/dt];
                     Ft = [1/dt, 1/dt];
                 end
-            end            
+            end      
+
+            if dt<1e-3
+                break
+            end
 
             % Interpolation between grids
             phi_interp = griddedInterpolant((zz_p(i-1,:)),phi(i-1+n,:),'pchip','nearest');
@@ -674,6 +678,7 @@ while t(max([1,i-1]))<tf && i<=nt
                     H2O_diff = griddedInterpolant([zz_p(i-1,:), zz_u(i-1,end)],[mean_H2O(i,2:2:end),SolFun(BC_T(end),Pp)],'pchip','nearest');
                     H2O_diff_edge = griddedInterpolant([zz_p(i-1,:), zz_u(i-1,end)],[squeeze(H2O(i,:,end)),SolFun(BC_T(end),Pp)],'pchip','nearest');
                     H2O_edge = trapz(linspace(zz_p(i-1,end),zz_u(i-1,end),100).^3,H2O_diff_edge(linspace(zz_p(i-1,end),zz_u(i-1,end),100)))./(zz_u(i-1,end).^3-zz_p(i-1,end).^3);
+                    H2O_edge = max(H2O_edge,SolFun(BC_T(end),Pp));
                     mean_H2O(i,1:2:end) = H2O_diff(zz_u(i-1,1:end));
                     mean_H2O(i,end) = H2O_edge;
                 case 'None'
@@ -712,7 +717,6 @@ while t(max([1,i-1]))<tf && i<=nt
                 dbetadt(i,:) = Dt*beta(i-2,:) - Bt*beta(i-1,:) + Ft*beta(i,:);
             end
             
-
             % Viscous flow
             if i == 2 
                 [Pi, ui] = DynFun(P(i-1,:)-PT(1),u(i-1,:), ...
@@ -860,6 +864,8 @@ while t(max([1,i-1]))<tf && i<=nt
             plot(m,mean(R(i,:)),'o','MarkerFaceColor','k')
             ylabel('Radius')
 
+            drawnow
+
             n = 1;
             m = m+1;
         end
@@ -870,7 +876,7 @@ while t(max([1,i-1]))<tf && i<=nt
 
     figure(3)
     
-    if rem(i-1,round((nt-1)/10))==0
+    if rem(i-1,round((nt-1)/20))==0
         ys = {P,u,mean_H2O,phi,T-273.15};
         xs = {zz_p,zz_u,zz_t,zz_p,zz_t};
         switch Geometry

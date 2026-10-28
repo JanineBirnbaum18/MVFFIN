@@ -6,7 +6,7 @@ warning('off','MATLAB:nearlySingularMatrix')
 %Melt composition
 %[SiO2 TiO2 Al2O3 FeO(T) MnO MgO CaO Na2O K2O P2O5 H2O F2O-1]
 Composition = [75.17 0.22 12.02 3.13 0.11 0.09 1.66 4.58 2.88 0 0 0];
-H2Ot_0 = 0.108; %initial water concentration (wt. %)
+H2Ot_0 = 0.105; %initial water concentration (wt. %)
 %Dynamics geometry
 Geometry = 'Radial'; 
 BC = 'Symmetry';
@@ -35,7 +35,7 @@ PermModel = 'None';
 OutgasModel = 'Diffusive';
 
 %Constants used for calculations
-SurfTens = 0.22; %Value for surface tension (N/m) Shea 2017: 0.079
+SurfTens = 0.079; %Value for surface tension (N/m) Shea 2017: 0.079
 melt_rho = 2400; %Melt density in kg/m^3
 rock_rho = 2400; %Country rock density in kg/m^3
 env_rho = 1; %Surrounding air or water density in kg/m^3
@@ -52,17 +52,17 @@ P_f = 101e3; % Final surface pressure
 dPdt = 1e-10;
 T_0 = 706 + 273.15; %Initial temperature in K
 T_f = 1006 + 273.15;
-PTtModel = 'Jenny';
+PTtModel = 'Ramp';
 Buoyancy = 'False';
 dTdt = [10/60 -10/60];
-t_quench = 10*60*60+30*60;
-tf = 10*60*60+2*30*60;
+t_quench = 48*60*60+30*60;
+tf = 48*60*60+2*30*60;
 solve_T = true;
 
 % Discretization
-nt = 1000;
-n_magma = 10;
-t_min = 10;
+nt = 500;
+n_magma = 50;
+t_min = 20;
 t_max = 600;
 
 radii = [0.5, 1.5, 3, 6]*1e-3;
@@ -83,7 +83,7 @@ for i = 1:length(radii)
 
     figure(9); hold on; 
     plot(t+68.6*60,sum((zz_u(:,2:end).^3 - zz_u(:,1:end-1).^3).*phi,2)./(zz_u(:,end)).^3,'DisplayName','R = ' + string(radius*1e3) + ' mm','LineWidth',2,'Color',colors(i,:));
-end
+
 set(gca,'XScale','log')
 xlim([1e3,2e5])
 ylim([0,0.8])
@@ -127,7 +127,6 @@ for i=1:max([1, floor(length(t)/10)]):length(t)
     end
 end
 
-
 dat = struct('t',t,'R',R,'R0',R_0,'Nb',Nb,'Nb0',Nb_0,'phi',phi,'Pb',pb,'m',m_loss, ...
             'P',P,'P0',P_0,'dPdt',dPdt,'u',u, ...
             'T',T,'T0',T_0,'Tf' ,T_f,'dTdt',dTdt,'t_quench',t_quench,'PModel',PTtModel, ...
@@ -138,5 +137,5 @@ dat = struct('t',t,'R',R,'R0',R_0,'Nb',Nb,'Nb0',Nb_0,'phi',phi,'Pb',pb,'m',m_los
             'EOSModel',EOSModel,'SolModel',SolModel ,...
             'ViscModel',ViscModel,'SurfTens',SurfTens,'melt_rho',melt_rho);
     save(['./Results/Radius' num2str(radius*1e-6,'%.0f') '.mat'],'dat')
-
+end
 

@@ -97,7 +97,8 @@ for i = 1:length(radii)
 
         for a = 1:size(phi, 2) 
             Vt = Vt + 4/3.*pi().*(zz_u(j, a+1).^3 - zz_u(j, a).^3) ; 
-            VPhi = VPhi + 4/3.*pi().*(zz_u(j, a+1).^3 - zz_u(j, a).^3) * phi(j, a) ; 
+            VPhi = VPhi + 4/3.*pi().*(zz_u(j, a+1).^3 - zz_u(j, a).^3 ...
+                ) * phi(j, a) ; 
         end 
 
         phi_avg(j) = VPhi / Vt ;   
